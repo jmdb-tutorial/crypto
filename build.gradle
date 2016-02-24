@@ -1,0 +1,15 @@
+group 'jmdb-tutorial'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'ch.qos.logback:logback-classic:1.1.5'
+    testCompile 'junit:junit:4.11'
+}
