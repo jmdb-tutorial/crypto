@@ -3,6 +3,7 @@ package jmdbtutorial.crypto;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.DigestInputStream;
@@ -43,7 +44,7 @@ public class TestCryptoHashing {
 
         out.println("base64        : " + base64Hash);
 
-        String hex = toHexString(raw);
+        String hex = printHexBytes(raw);
         out.println("hex           : " + hex);
 
     }
@@ -70,57 +71,80 @@ public class TestCryptoHashing {
      * http://www.javamex.com/tutorials/conversion/decimal_hexadecimal.shtml
      * Also by looking in DataTypeconverter
      */
-    public static String toHexString(byte[] data) {
+    public static String printHexBytes(byte[] data) {
 
         StringBuilder r = new StringBuilder(data.length * 2);
         for (byte b : data) {
+            r.append("       ");
             r.append(hexCode[(b >> 4) & 0xF]);
             r.append(hexCode[(b & 0xF)]);
-            r.append(" ");
         }
-        return r.toString().trim();
+        return r.toString();
 
     }
 
     @Test
-    public void some_common_hex_numbers() {
-        byte a = -1;
-
-        out.println("a = " + (a & 0xFF));
-
-
-        out.println("binary = " + formatBinaryString(Integer.toBinaryString((byte)-1)));
-
-        int i2 = 255;
-        out.println("binary = " + formatBinaryString(Integer.toBinaryString(i2)));
-
-        ByteBuffer buf = ByteBuffer.allocate(4);
-        buf.put(a);
-
-        byte[] bytes = buf.array();
-
-        int[] unsignedBytes = unsignedBytes(bytes);
-
-        out.println("bytes.length     : " + bytes.length);
-        out.println("bytes (unsigned) : " + printRawBytes(bytes));
-        out.println("bytes (signed)   : " + printIntBytes(unsignedBytes));
-        out.println("asbinary         : " + printIntBytesBinary(unsignedBytes));
+    public void bytes_and_bits() {
+        byte[] bytes = new byte[] {0, 1, -1};
+        printByteArray(bytes);
 
 
     }
 
+    @Test
+    public void printOutAString() throws UnsupportedEncodingException {
+        String input = "ABC€$&\u00E8";
+
+        out.println("String   : " + input);
+        out.println("\nUTF-8");
+        out.println("-----");
+
+        StringBuilder sb = new StringBuilder();
+        for (Character c :  input.toCharArray()) {
+            String s = c.toString();
+            sb.append(padString(c.toString(), ' ', 9 * s.getBytes("UTF-8").length));
+
+        }
+        out.println("Input            : " + sb.toString());
+        printByteArray(input.getBytes("UTF-8"));
+    }
+
+    private static void printByteArray(byte[] bytes) {
+        int[] unsignedBytes = unsignedBytes(bytes);
+
+        out.println(format("bytes.length     : %9d", bytes.length));
+        out.println("bytes (unsigned) : " + printRawBytes(bytes));
+        out.println("bytes (signed)   : " + printIntBytes(unsignedBytes));
+        out.println("bytes (hex)      : " + printHexBytes(bytes));
+        out.println("bytes (binary)   : " + printIntBytesBinary(unsignedBytes));
+    }
+
+
     private static String printIntBytesBinary(int[] unsignedBytes) {
         StringBuilder sb = new StringBuilder();
         for (int b : unsignedBytes) {
-            sb.append(" ").append(format("%s", formatBinaryString(Integer.toBinaryString(b))));
+            sb.append(" ").append(padString(formatBinaryString(Integer.toBinaryString(b)), '0', 8));
         }
+        return sb.toString();
+    }
+
+    private static String padString(String input, char padding, int width) {
+        if (input.length() >= width) {
+            return input;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < (width - input.length()); ++i) {
+            sb.append(padding);
+        }
+        sb.append(input);
         return sb.toString();
     }
 
     private static int[] unsignedBytes(byte[] bytes) {
         int[] result = new int[bytes.length];
 
-        for (int i=0;i<bytes.length;++i) {
+        for (int i = 0; i < bytes.length; ++i) {
             result[i] = bytes[i] & 0xFF;
         }
         return result;
@@ -129,13 +153,14 @@ public class TestCryptoHashing {
     public static String formatBinaryString(String binaryString) {
         return formatBinaryString(binaryString, 8);
     }
+
     public static String formatBinaryString(String binaryString, int blockSize) {
         StringBuilder sb = new StringBuilder();
 
 
-        for (int i = 0; i< binaryString.length(); ++i) {
+        for (int i = 0; i < binaryString.length(); ++i) {
             sb.append(binaryString.charAt(i));
-            if ((i +1) % blockSize == 0) {
+            if ((i + 1) % blockSize == 0) {
                 sb.append(" ");
             }
         }
