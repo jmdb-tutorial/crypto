@@ -70,7 +70,7 @@ public class TestCryptoHashing {
 
 
     public static String printHexBytes(byte[] data) {
-        return printHexBytes(data, 9);
+        return printHexBytes(data, 7);
     }
 
     /**
