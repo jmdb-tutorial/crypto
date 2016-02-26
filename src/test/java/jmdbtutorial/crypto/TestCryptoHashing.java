@@ -33,21 +33,20 @@ public class TestCryptoHashing {
         byte[] raw = messageDigest.digest();
 
 
-        out.println("Digest Length : " + messageDigest.getDigestLength());
-        out.println("Algorithm     : " + messageDigest.getAlgorithm());
+        out.println("Input            : " + input);
+        out.println("Digest Length    : " + messageDigest.getDigestLength());
+        out.println("Algorithm        : " + messageDigest.getAlgorithm());
 
-
-        out.println("Raw Bytes     : " + printRawBytes(raw));
-        out.println("Bytes.length  : " + raw.length);
 
         String base64Hash = new String(Base64.getEncoder().encode(raw));
 
-        out.println("base64        : " + base64Hash);
+        out.println("\nbase64           : " + base64Hash);
+        out.println("hex              : " + printHexBytes(raw, 1).trim() + "\n");
 
-        String hex = printHexBytes(raw);
-        out.println("hex           : " + hex);
+        printByteArray(raw);
 
     }
+
 
 
     @Test
@@ -67,21 +66,31 @@ public class TestCryptoHashing {
 
     private static final char[] hexCode = "0123456789abcdef".toCharArray();
 
+
+
+
+    public static String printHexBytes(byte[] data) {
+        return printHexBytes(data, 9);
+    }
+
     /**
      * http://www.javamex.com/tutorials/conversion/decimal_hexadecimal.shtml
      * Also by looking in DataTypeconverter
      */
-    public static String printHexBytes(byte[] data) {
+    public static String printHexBytes(byte[] data, int padding) {
 
         StringBuilder r = new StringBuilder(data.length * 2);
         for (byte b : data) {
-            r.append("       ");
+            r.append(padString("", ' ', padding));
             r.append(hexCode[(b >> 4) & 0xF]);
             r.append(hexCode[(b & 0xF)]);
         }
         return r.toString();
 
     }
+
+
+
 
     @Test
     public void bytes_and_bits() {
