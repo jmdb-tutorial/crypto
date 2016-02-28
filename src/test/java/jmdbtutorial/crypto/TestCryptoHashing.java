@@ -41,10 +41,68 @@ public class TestCryptoHashing {
         String base64Hash = new String(Base64.getEncoder().encode(raw));
 
         out.println("\nbase64           : " + base64Hash);
+        out.println("hex              : " + printHexBytes(raw, 0).trim() + "\n");
         out.println("hex              : " + printHexBytes(raw, 1).trim() + "\n");
 
         printByteArray(raw);
 
+    }
+
+    /**
+     * https://www.cs.cornell.edu/~tomf/notes/cps104/twoscomp.html
+     * https://stackoverflow.com/questions/13109802/why-does-anding-a-number-convert-between-signed-and-unsigned-presentation
+     * http://www.cs.uwm.edu/~cs151/Bacon/Lecture/HTML/ch03s09.html
+     * https://stackoverflow.com/questions/6393873/how-to-get-the-binary-values-of-the-bytes-stored-in-byte-array
+     * https://stackoverflow.com/questions/12310017/how-to-convert-a-byte-to-its-binary-string-representation/12310078#12310078
+     */
+    @Test
+    public void convert_unsigned_to_signed() {
+        byte b = -128;
+        int unsignedInt = Byte.toUnsignedInt(b);
+
+        int mask = 0xff;
+
+        out.println(format("signed byte     : %4d", b));
+        out.println(format("unsigned int    : %4d", unsignedInt));
+        out.println(format("mask            : %4d", mask));
+        out.println(format("mask (binary)   : %s", formatBinaryString(Integer.toBinaryString(mask), 4, 4)));
+        out.println(format("signed (binary) : %s", formatBinaryString(Integer.toBinaryString(b), 4, 4)));
+        out.println(format("b & 0xff        : %s", formatBinaryString(Integer.toBinaryString(b & mask), 4, 4)));
+
+        //int i = 0b11111111111111111111111110000000;
+        int i = 0b10000000000000000000000000000000;
+
+        out.println("i   = " + i);
+        out.println("min = " + Integer.MIN_VALUE);
+    }
+
+    /**
+     * http://stackoverflow.com/a/6393904
+     */
+    public static String toBinaryString(byte b) {
+        return Integer.toBinaryString(b & 0xff | 0x100).substring(1);
+    }
+
+    /**
+     * https://stackoverflow.com/questions/141525/what-are-bitwise-shift-bit-shift-operators-and-how-do-they-work
+     */
+    @Test
+    public void bitshifting() {
+        byte b = -128;
+
+        out.println("b       :" + b);
+        out.println("b       : " + toBinaryString(b));
+        out.println("b << 1  : " + toBinaryString((byte)(b << 1)));
+        out.println("b >> 1  : " + toBinaryString((byte)((b & 0xff) >> 1)));
+        out.println("b >>> 1 : " + toBinaryString((byte)(b >>> 1)));
+
+    }
+
+    @Test
+    public void print_bytes_as_binary() {
+        for (byte b = -128; b<127; ++b) {
+            out.println(format("%5d", b));
+        }
     }
 
 
@@ -160,20 +218,32 @@ public class TestCryptoHashing {
     }
 
     public static String formatBinaryString(String binaryString) {
-        return formatBinaryString(binaryString, 8);
+        return formatBinaryString(binaryString, 8, 0);
     }
 
-    public static String formatBinaryString(String binaryString, int blockSize) {
+    public static String formatBinaryString(String binaryString, int blockSize, int paddingBytes) {
+        String paddedBinaryString = padBinaryStringWithZeros(binaryString, paddingBytes);
+
         StringBuilder sb = new StringBuilder();
 
 
-        for (int i = 0; i < binaryString.length(); ++i) {
-            sb.append(binaryString.charAt(i));
+        for (int i = 0; i < paddedBinaryString.length(); ++i) {
+            sb.append(paddedBinaryString.charAt(i));
             if ((i + 1) % blockSize == 0) {
                 sb.append(" ");
             }
         }
         return sb.toString().trim();
+    }
+
+    private static String padBinaryStringWithZeros(String binaryString, int paddingBytes) {
+        StringBuilder sb = new StringBuilder();
+
+        for (int i=0; i< (paddingBytes * 8) - binaryString.length() ; ++i) {
+            sb.append("0");
+        }
+        sb.append(binaryString);
+        return sb.toString();
     }
 
     @Test
