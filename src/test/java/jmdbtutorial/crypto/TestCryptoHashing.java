@@ -11,7 +11,10 @@ import java.security.MessageDigest;
 import java.util.Base64;
 
 import static java.lang.String.format;
+import static java.lang.System.err;
 import static java.lang.System.out;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 
 public class TestCryptoHashing {
 
@@ -87,10 +90,11 @@ public class TestCryptoHashing {
      * https://stackoverflow.com/questions/141525/what-are-bitwise-shift-bit-shift-operators-and-how-do-they-work
      */
     @Test
-    public void bitshifting() {
-        byte b = -128;
+    public void bitshifting_bytes() {
+        byte b = (byte)0b10000000;
 
-        out.println("b       :" + b);
+
+        out.println("b       : " + padString("" + b, ' ', 8));
         out.println("b       : " + toBinaryString(b));
         out.println("b << 1  : " + toBinaryString((byte)(b << 1)));
         out.println("b >> 1  : " + toBinaryString((byte)((b & 0xff) >> 1)));
@@ -99,10 +103,57 @@ public class TestCryptoHashing {
     }
 
     @Test
-    public void print_bytes_as_binary() {
-        for (byte b = -128; b<127; ++b) {
-            out.println(format("%5d", b));
+    public void bitmasking() {
+        final byte FLAG_A = 0b00000001; // 1
+        final byte FLAG_B = 0b00000010; // 2
+        final byte FLAG_C = 0b00000100; // 4
+        final byte FLAG_D = 0b00001000; // 8
+        final byte FLAG_E = 0b00010000; // 16
+        final byte FLAG_F = 0b00100000; // 32
+        final byte FLAG_G = 0b01000000; // 64
+        final byte FLAG_H = (byte)0b10000000; //128
+
+        byte flags = FLAG_A | FLAG_G | FLAG_E;
+
+        out.println("flags: " + toBinaryString(flags));
+
+        assertThat((flags & FLAG_A) == FLAG_A, is(true));
+        assertThat((flags & FLAG_B) == FLAG_B, is(false));
+        assertThat((flags & FLAG_C) == FLAG_C, is(false));
+        assertThat((flags & FLAG_D) == FLAG_D, is(false));
+        assertThat((flags & FLAG_E) == FLAG_E, is(true));
+        assertThat((flags & FLAG_F) == FLAG_F, is(false));
+        assertThat((flags & FLAG_G) == FLAG_G, is(true));
+        assertThat((flags & FLAG_H) == FLAG_H, is(false));
+
+    }
+
+
+    @Test
+    public void print_signed_bytes_as_binary() {
+        for (int b = -128; b<128; ++b) {
+            out.println(format("%5d %s", (byte)b, toBinaryString((byte)b)));
         }
+    }
+
+    @Test
+    public void print_signed_integers_as_binary() {
+        int a = Integer.MIN_VALUE;
+        int b = Integer.MIN_VALUE + 1;
+        int c = (int) -Math.pow(2, 16)+1;
+        int d = -1;
+        int e = 0;
+        int f = 1;
+        int g = Integer.MAX_VALUE;
+
+
+        out.println(format("%11d", a) + " " + formatBinaryString(Integer.toBinaryString(a), 4, 4));
+        out.println(format("%11d", b) + " " + formatBinaryString(Integer.toBinaryString(b), 4, 4));
+        out.println(format("%11d", c) + " " + formatBinaryString(Integer.toBinaryString(c), 4, 4));
+        out.println(format("%11d", d) + " " + formatBinaryString(Integer.toBinaryString(d), 4, 4));
+        out.println(format("%11d", e) + " " + formatBinaryString(Integer.toBinaryString(e), 4, 4));
+        out.println(format("%11d", f) + " " + formatBinaryString(Integer.toBinaryString(f), 4, 4));
+        out.println(format("%11d", g) + " " + formatBinaryString(Integer.toBinaryString(g), 4, 4));
     }
 
 
