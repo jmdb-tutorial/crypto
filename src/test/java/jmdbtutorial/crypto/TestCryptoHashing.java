@@ -41,7 +41,7 @@ public class TestCryptoHashing {
         out.println("Algorithm        : " + messageDigest.getAlgorithm());
 
 
-        String base64Hash = new String(Base64.getEncoder().encode(raw));
+        String base64Hash = new String(Base64.getEncoder().encodeToString(raw));
 
         out.println("\nbase64           : " + base64Hash);
         out.println("hex              : " + printHexBytes(raw, 0).trim() + "\n");
