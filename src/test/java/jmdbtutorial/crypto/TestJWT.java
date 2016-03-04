@@ -10,7 +10,6 @@ import org.junit.Test;
 import java.security.Key;
 import java.security.SecureRandom;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static java.lang.System.out;
 import static java.util.Arrays.asList;
@@ -72,9 +71,10 @@ public class TestJWT {
         }
 
         private Claims setRoles(String... roles) {
-            super.setValue(ROLES, asList(roles).stream().collect(joining(", ")));
+            super.setValue(ROLES, roles);
             return this;
         }
+
 
 
     }
