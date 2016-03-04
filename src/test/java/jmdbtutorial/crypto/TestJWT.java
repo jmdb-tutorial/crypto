@@ -51,6 +51,7 @@ public class TestJWT {
         out.println("Validate it here : http://jwt.io/#debugger");
 
         boolean subjectMatches = Jwts.parser()
+                .require("audience", "destination.server.com")
                 .setSigningKey(key)
                 .parseClaimsJws(s)
                 .getBody().getSubject().equals("Joe");
