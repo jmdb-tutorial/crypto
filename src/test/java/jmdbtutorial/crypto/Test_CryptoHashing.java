@@ -11,12 +11,11 @@ import java.security.MessageDigest;
 import java.util.Base64;
 
 import static java.lang.String.format;
-import static java.lang.System.err;
 import static java.lang.System.out;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
-public class TestCryptoHashing {
+public class Test_CryptoHashing {
 
     @Test
     public void sha256_hash() throws Exception {
@@ -91,14 +90,14 @@ public class TestCryptoHashing {
      */
     @Test
     public void bitshifting_bytes() {
-        byte b = (byte)0b10000000;
+        byte b = (byte) 0b10000000;
 
 
         out.println("b       : " + padString("" + b, ' ', 8));
         out.println("b       : " + toBinaryString(b));
-        out.println("b << 1  : " + toBinaryString((byte)(b << 1)));
-        out.println("b >> 1  : " + toBinaryString((byte)((b & 0xff) >> 1)));
-        out.println("b >>> 1 : " + toBinaryString((byte)(b >>> 1)));
+        out.println("b << 1  : " + toBinaryString((byte) (b << 1)));
+        out.println("b >> 1  : " + toBinaryString((byte) ((b & 0xff) >> 1)));
+        out.println("b >>> 1 : " + toBinaryString((byte) (b >>> 1)));
 
     }
 
@@ -111,7 +110,7 @@ public class TestCryptoHashing {
         final byte FLAG_E = 0b00010000; // 16
         final byte FLAG_F = 0b00100000; // 32
         final byte FLAG_G = 0b01000000; // 64
-        final byte FLAG_H = (byte)0b10000000; //128
+        final byte FLAG_H = (byte) 0b10000000; //128
 
         byte flags = FLAG_A | FLAG_G | FLAG_E;
 
@@ -131,8 +130,8 @@ public class TestCryptoHashing {
 
     @Test
     public void print_signed_bytes_as_binary() {
-        for (int b = -128; b<128; ++b) {
-            out.println(format("%5d %s", (byte)b, toBinaryString((byte)b)));
+        for (int b = -128; b < 128; ++b) {
+            out.println(format("%5d %s", (byte) b, toBinaryString((byte) b)));
         }
     }
 
@@ -140,7 +139,7 @@ public class TestCryptoHashing {
     public void print_signed_integers_as_binary() {
         int a = Integer.MIN_VALUE;
         int b = Integer.MIN_VALUE + 1;
-        int c = (int) -Math.pow(2, 16)+1;
+        int c = (int) -Math.pow(2, 16) + 1;
         int d = -1;
         int e = 0;
         int f = 1;
@@ -155,7 +154,6 @@ public class TestCryptoHashing {
         out.println(format("%11d", f) + " " + formatBinaryString(Integer.toBinaryString(f), 4, 4));
         out.println(format("%11d", g) + " " + formatBinaryString(Integer.toBinaryString(g), 4, 4));
     }
-
 
 
     @Test
@@ -174,8 +172,6 @@ public class TestCryptoHashing {
     }
 
     private static final char[] hexCode = "0123456789abcdef".toCharArray();
-
-
 
 
     public static String printHexBytes(byte[] data) {
@@ -199,11 +195,9 @@ public class TestCryptoHashing {
     }
 
 
-
-
     @Test
     public void bytes_and_bits() {
-        byte[] bytes = new byte[] {0, 1, -1};
+        byte[] bytes = new byte[]{0, 1, -1};
         printByteArray(bytes);
 
 
@@ -218,7 +212,7 @@ public class TestCryptoHashing {
         out.println("-----");
 
         StringBuilder sb = new StringBuilder();
-        for (Character c :  input.toCharArray()) {
+        for (Character c : input.toCharArray()) {
             String s = c.toString();
             sb.append(padString(c.toString(), ' ', 9 * s.getBytes("UTF-8").length));
 
@@ -290,7 +284,7 @@ public class TestCryptoHashing {
     private static String padBinaryStringWithZeros(String binaryString, int paddingBytes) {
         StringBuilder sb = new StringBuilder();
 
-        for (int i=0; i< (paddingBytes * 8) - binaryString.length() ; ++i) {
+        for (int i = 0; i < (paddingBytes * 8) - binaryString.length(); ++i) {
             sb.append("0");
         }
         sb.append(binaryString);
