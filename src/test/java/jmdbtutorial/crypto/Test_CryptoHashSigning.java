@@ -7,10 +7,9 @@ import java.security.*;
 import java.util.Base64;
 
 import static java.lang.System.out;
-import static jmdbtutorial.crypto.DataSigning.generateKeyPair;
-import static jmdbtutorial.crypto.DataSigning.signData;
-import static jmdbtutorial.crypto.DataSigning.verifyData;
+import static jmdbtutorial.crypto.DataSigning.*;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 
 public class Test_CryptoHashSigning {
 
@@ -20,15 +19,22 @@ public class Test_CryptoHashSigning {
 
         String messageHash = hash(message, "SHA-256").toString();
 
-        out.println("Message hash : " + messageHash);
+        out.println("Message hash (base64) : " + messageHash);
 
         KeyPair keyPair = generateKeyPair();
 
-        String signature = signData(messageHash, keyPair.getPrivate());
+        String signatureBase64 = signData(messageHash, keyPair.getPrivate());
 
-        out.println("Signature    : " + signature);
+        out.println("Signature (base64)    : " + signatureBase64);
 
+        String publicKeyBase64 = encodeAsBase64(keyPair.getPublic());
+        out.println("Public Key (base64)   : " + publicKeyBase64);
 
+        boolean isValid = DataSigning.verifyData(publicKeyBase64, signatureBase64, messageHash);
+
+        out.println("Is Valid signature    : " + isValid);
+
+        assertThat(isValid, is(true));
 
     }
 

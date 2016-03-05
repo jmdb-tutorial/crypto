@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
@@ -49,6 +50,20 @@ public class DataSigning {
 
     public static boolean verifyData(String publicKeyEncodedBase64, String signatureBase64, URL dataUrl) throws Exception {
 
+        try (BufferedInputStream in = new BufferedInputStream(dataUrl.openStream())) {
+            return verifyInputStream(publicKeyEncodedBase64, signatureBase64, in);
+        }
+
+    }
+
+    public static boolean verifyData(String publicKeyEncodedBase64, String signatureBase64, String data) throws Exception {
+        try (BufferedInputStream in = new BufferedInputStream(new ByteArrayInputStream(data.getBytes()))) {
+            return verifyInputStream(publicKeyEncodedBase64, signatureBase64, in);
+        }
+
+    }
+
+    private static boolean verifyInputStream(String publicKeyEncodedBase64, String signatureBase64, BufferedInputStream in) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, InvalidKeyException, IOException, SignatureException {
         Base64.Decoder decoder = Base64.getDecoder();
 
         byte[] signatureData = decoder.decode(signatureBase64.getBytes());
@@ -62,18 +77,13 @@ public class DataSigning {
         Signature signature = Signature.getInstance("SHA1withDSA", "SUN");
         signature.initVerify(publicKey);
 
-        BufferedInputStream in = new BufferedInputStream(dataUrl.openStream());
         byte[] buffer = new byte[1024];
         int len;
         while (in.available() != 0) {
             len = in.read(buffer);
             signature.update(buffer, 0, len);
         }
-
-        in.close();
-
         return signature.verify(signatureData);
-
     }
 
     public static String encodeAsBase64(PublicKey aPublic) {
