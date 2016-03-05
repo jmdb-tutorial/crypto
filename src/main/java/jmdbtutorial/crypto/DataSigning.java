@@ -10,6 +10,10 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
+/**
+ * https://en.wikipedia.org/wiki/Digital_signature
+ *
+ */
 public class DataSigning {
     public static KeyPair generateKeyPair() throws Exception {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DSA", "SUN");

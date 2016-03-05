@@ -11,6 +11,9 @@ import static jmdbtutorial.crypto.DataSigning.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
+/**
+ * https://crypto.stackexchange.com/questions/12768/why-hash-the-message-before-signing-it-with-rsa
+ */
 public class Test_CryptoHashSigning {
 
     @Test
