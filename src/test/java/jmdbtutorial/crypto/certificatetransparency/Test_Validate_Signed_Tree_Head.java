@@ -1,21 +1,32 @@
 package jmdbtutorial.crypto.certificatetransparency;
 
-import jmdbtutorial.crypto.DataSigning;
-import jmdbtutorial.crypto.Test_CryptoHashSigning;
 import jmdbtutorial.crypto.Test_CryptoHashing;
 import jmdbtutorial.platform.http.Http;
 import jmdbtutorial.platform.http.HttpResponse;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.http.client.methods.HttpGet;
 import org.junit.Test;
-import sun.security.util.DerEncoder;
 import sun.security.util.DerValue;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 
 import static java.lang.String.format;
 import static java.lang.System.out;
 import static jmdbtutorial.crypto.DataSigning.base64AsBytes;
+import static jmdbtutorial.crypto.DataSigning.sha256Hash;
 import static jmdbtutorial.crypto.Test_CryptoHashing.printHexBytes;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNot.not;
 
 /**
  * https://tools.ietf.org/html/rfc6962#section-4.3
@@ -29,9 +40,19 @@ public class Test_Validate_Signed_Tree_Head {
     private static final byte LOG_VERSION = 0;
     private static final byte TREE_HASH = 1;
 
+    private static String PILOT_LOG_PUBLICK_KEY_PEM = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEfahLEimAoz2t01p3uMziiLOl/fHTDM0YDOhBRuiBARsV4UvxG2LdNgoIGLrtCzWE0J5APC2em4JlvR8EEEFMoA==";
+
+
+
     private Http http = new Http().init();
 
 
+    @Test
+    public void load_public_key() throws Exception {
+        PublicKey key = parsePublicKeyFromString(PILOT_LOG_PUBLICK_KEY_PEM);
+
+        out.println(key);
+    }
 
     /**
        digitally-signed struct {
@@ -55,9 +76,12 @@ public class Test_Validate_Signed_Tree_Head {
 
      https://tools.ietf.org/html/rfc6962#section-4.3
      The hash is encoded in base64
+
+     // see https://tools.ietf.org/html/draft-laurie-pki-sunlight-09#section-3.5
+
      */
     @Test
-    public void validateSignedTreeHead() {
+    public void validateSignedTreeHead() throws Exception {
 
         HttpGet get = new HttpGet("http://ct.googleapis.com/pilot/ct/v1/get-sth");
 
@@ -67,10 +91,7 @@ public class Test_Validate_Signed_Tree_Head {
 
         out.println(sthResponse.toString());
 
-        // see https://tools.ietf.org/html/draft-laurie-pki-sunlight-09#section-3.5
 
-        byte[] hashBytes = base64AsBytes(sthResponse.sha256_root_hash);
-        out.println("Hash length (bytes) : " + hashBytes.length);
 
         ByteBuffer buf = ByteBuffer.allocate(2+8+8+32);
 
@@ -79,6 +100,8 @@ public class Test_Validate_Signed_Tree_Head {
         buf.putLong(sthResponse.timestamp); // writes 8 byte version of the long
         buf.putLong(sthResponse.tree_size);
 
+        byte[] hashBytes = base64AsBytes(sthResponse.sha256_root_hash);
+        out.println("Hash length (bytes)    : " + hashBytes.length);
         buf.put(hashBytes);
 
         byte[] bytesToVerify = buf.array();
@@ -86,12 +109,71 @@ public class Test_Validate_Signed_Tree_Head {
         out.println("Bytes to verify length : " + bytesToVerify.length);
         out.println("Bytes (hex)            :" + printHexBytes(bytesToVerify, 1));
 
+        byte[] sha256DigestToVerify = sha256Hash(bytesToVerify);
+
+        PublicKey logPublicKey = parsePublicKeyFromString(PILOT_LOG_PUBLICK_KEY_PEM);
+
+
+
+
+        ByteArrayInputStream in = new ByteArrayInputStream(sha256DigestToVerify);
+
+        Signature signature = Signature.getInstance("SHA256withECDSA");
+        signature.initVerify(logPublicKey);
+
+        byte[] buffer = new byte[1024];
+        int len;
+        while (in.available() != 0) {
+            len = in.read(buffer);
+            signature.update(buffer, 0, len);
+        }
+        byte[] digitallySignedBytes = base64AsBytes(sthResponse.tree_head_signature);
+
+        out.println("digitallySignedBytes :" + printHexBytes(digitallySignedBytes, 1));
+
+        // See https://tools.ietf.org/html/rfc5246#section-4.7
+        byte hashFunctionByte = digitallySignedBytes[0];
+        byte algorithmByte = digitallySignedBytes[1];
+        out.println("Hash function byte : " + hashFunctionByte);
+        out.println("Algorithm byte     : " + algorithmByte);
+
+
+        byte[] signatureBytesDerEncoded = Arrays.copyOfRange(digitallySignedBytes, 2, digitallySignedBytes.length);
+
+        byte[] rawSignature = parseBytesFromDER(signatureBytesDerEncoded);
+
+        out.println("Raw signature      :" + printHexBytes(rawSignature, 1));
+        boolean isValid =  signature.verify(rawSignature);
+
+        out.println("Is Valid : " + isValid);
+
+
     }
 
-    private byte[] parseBytesFromDERString(String tree_head_signature) throws Exception {
-        DerValue val = new DerValue(tree_head_signature);
+    private byte[] parseBytesFromDER(byte[] input) throws Exception {
+        DerValue val = new DerValue(input);
 
         return val.getDataBytes();
+    }
+
+    /**
+     * From http://stackoverflow.com/a/27621696
+     * @param publicKey
+     * @return
+     * @throws IOException
+     * @throws GeneralSecurityException
+     */
+    public static PublicKey parsePublicKeyFromString(String publicKey) throws IOException, GeneralSecurityException {
+        java.util.Base64.Decoder decoder = java.util.Base64.getDecoder();
+
+        byte[] publicKeyBytes = decoder.decode(publicKey);
+
+        KeyFactory keyFactory = KeyFactory.getInstance("EC");
+
+        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
+
+        return keyFactory.generatePublic(publicKeySpec);
+
     }
 
     private static class SignedTreeHeadResponse {

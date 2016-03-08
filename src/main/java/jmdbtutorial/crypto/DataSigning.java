@@ -97,4 +97,21 @@ public class DataSigning {
     public static byte[] base64AsBytes(String sha256_root_hash)  {
         return Base64.getDecoder().decode(sha256_root_hash);
     }
+
+    public static byte[] sha256Hash(byte[] input) throws Exception {
+        ByteArrayInputStream dataInputStream = new ByteArrayInputStream(input);
+
+        MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+
+
+        DigestInputStream in = new DigestInputStream(dataInputStream, messageDigest);
+
+        byte[] buffer = new byte[8192];
+        while (in.read(buffer) != -1) ;
+
+        return messageDigest.digest();
+
+    }
+
+
 }
