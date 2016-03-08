@@ -93,4 +93,8 @@ public class DataSigning {
     public static String encodeAsBase64(PublicKey aPublic) {
         return Base64.getEncoder().encodeToString(aPublic.getEncoded());
     }
+
+    public static byte[] base64AsBytes(String sha256_root_hash)  {
+        return Base64.getDecoder().decode(sha256_root_hash);
+    }
 }

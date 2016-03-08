@@ -32,7 +32,7 @@ public class Http {
     }
 
 
-    public void init() {
+    public Http init() {
         http = HttpClientBuilder.create()
                 .disableContentCompression()
                 .disableConnectionState()
@@ -40,6 +40,7 @@ public class Http {
 
                 .build();
 
+        return this;
     }
 
     public HttpResponse execute(HttpUriRequest request) {

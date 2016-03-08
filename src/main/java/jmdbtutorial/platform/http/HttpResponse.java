@@ -35,4 +35,8 @@ public class HttpResponse {
     public boolean booleanValue(String key) {
         return responseValue(key);
     }
+
+    public int intValue(String key) { return responseValue(key);}
+
+    public long longValue(String key) { return responseValue(key); }
 }
