@@ -12,5 +12,9 @@ repositories {
 dependencies {
     compile 'ch.qos.logback:logback-classic:1.1.5'
     compile 'io.jsonwebtoken:jjwt:0.6.0'
+    compile 'org.apache.httpcomponents:httpclient:4.5'
+    compile 'org.codehaus.jackson:jackson-core-asl:1.9.13'
+    compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.13'
+
     testCompile 'junit:junit:4.11'
 }
