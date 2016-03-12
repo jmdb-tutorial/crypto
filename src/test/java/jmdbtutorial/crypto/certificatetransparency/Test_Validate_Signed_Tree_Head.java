@@ -5,9 +5,19 @@ import jmdbtutorial.platform.http.Http;
 import jmdbtutorial.platform.http.HttpResponse;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.client.methods.HttpGet;
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.ASN1StreamParser;
+import org.bouncycastle.asn1.*;
+import org.bouncycastle.asn1.nist.NISTNamedCurves;
+import org.bouncycastle.asn1.sec.SECNamedCurves;
+import org.bouncycastle.asn1.x9.X9ECParameters;
+import org.bouncycastle.crypto.CipherParameters;
+import org.bouncycastle.crypto.params.ECDomainParameters;
+import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.crypto.signers.ECDSASigner;
+import org.bouncycastle.crypto.util.PublicKeyFactory;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.math.ec.ECCurve;
+import org.bouncycastle.math.ec.ECPoint;
+import org.bouncycastle.util.encoders.Hex;
 import org.junit.Test;
 import sun.security.util.DerValue;
 
@@ -134,12 +144,11 @@ public class Test_Validate_Signed_Tree_Head {
         out.println("Max signature Length     :   " + MAX_SIGNATURE_LENGTH);
         out.println("Number of bytes required :   " + bytesForDataLength(MAX_SIGNATURE_LENGTH));
 
-        int length = ((treeHeadSignature[2] & 0xff) << 8) | (treeHeadSignature[3] & 0xff); // from http://stackoverflow.com/a/4768950
-        out.println("Length of signature      :  " + length);
+        int length = ((treeHeadSignature[2] & 0xff) << 8) | (treeHeadSignature[3] & 0xff); // from http://stackoverflow.com/a/4768950 // @TODO - explore further demonstrating how to read bytes into an integer
+        out.println("Signature.length (stated):  " + length);
 
-        //http://luca.ntop.org/Teaching/Appunti/asn1.html
-        byte[] signatureBytesEncoded = Arrays.copyOfRange(treeHeadSignature, 4, treeHeadSignature.length);
-        out.println("Signature.length         :  " + signatureBytesEncoded.length);
+        byte[] signatureBytesEncoded = Arrays.copyOfRange(treeHeadSignature, 4, treeHeadSignature.length); //http://luca.ntop.org/Teaching/Appunti/asn1.html
+        out.println("Signature.length (actual):  " + signatureBytesEncoded.length);
         out.println("Signature                :" + printUnsignedBytes(signatureBytesEncoded, 4));
 
 
@@ -148,16 +157,66 @@ public class Test_Validate_Signed_Tree_Head {
         out.println("Raw signature.length     :  " + rawSignature.length);
 
 
-        boolean isValid = validateUsingJdk(sha256DigestToVerify, logPublicKey, signatureBytesEncoded);
+        //boolean isValid = validateUsingJdk(sha256DigestToVerify, logPublicKey, signatureBytesEncoded);
 
-//        ASN1InputStream asn1 = new ASN1InputStream(signatureBytesEncoded);
-//        ASN1StreamParser parser = new ASN1StreamParser(signatureBytesEncoded);
-//        asn.
-//        ECDSASigner
+        boolean isValid = verifySignatureRaw(sha256DigestToVerify, logPublicKey, signatureBytesEncoded);
+
+        //boolean isValid = validateUsingJCE(sha256DigestToVerify, logPublicKey, signatureBytesEncoded);
 
         out.println("Is Valid : " + isValid);
 
 
+    }
+
+    private boolean validateUsingJCE(byte[] sha256DigestToVerify, PublicKey logPublicKey, byte[] signatureBytesEncoded) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, SignatureException {
+        Security.addProvider(new BouncyCastleProvider());
+
+        Signature ecdsaVerify = Signature.getInstance("SHA256withECDSA", "BC");
+        ecdsaVerify.initVerify(logPublicKey);
+        ecdsaVerify.update(sha256DigestToVerify);
+
+        return ecdsaVerify.verify(signatureBytesEncoded);
+    }
+
+    private boolean verifySignatureRaw(byte[] sha256DigestToVerify, PublicKey logPublicKey, byte[] signatureBytesEncoded) throws IOException {
+        ASN1StreamParser parser = new ASN1StreamParser(signatureBytesEncoded);
+        ASN1Encodable asn1Encodable = parser.readObject();
+
+        DERSequence derSequence = (DERSequence) asn1Encodable.toASN1Primitive();
+
+        out.println("DER sequence           : " + derSequence);
+
+        ASN1Integer R = (ASN1Integer) derSequence.getObjectAt(0);
+        ASN1Integer S = (ASN1Integer) derSequence.getObjectAt(1);
+
+        out.println("R                      : " + R);
+        out.println("S                      : " + S);
+
+        ECDSASigner ecdsa = new ECDSASigner();
+
+        X9ECParameters p = NISTNamedCurves.getByName("P-256");
+        // Could also be this but the public key tells us its P-256//X9ECParameters p = SECNamedCurves.getByName("secp224k1");
+        ECDomainParameters domainParameters = new ECDomainParameters(p.getCurve(), p.getG(), p.getN(), p.getH());
+
+        out.println("public key             : " + logPublicKey);
+
+        java.util.Base64.Decoder decoder = java.util.Base64.getDecoder();
+
+        byte[] publicKeyBytes = decoder.decode(PILOT_LOG_PUBLICK_KEY_PEM);
+
+        ECPublicKeyParameters bpubKey = (ECPublicKeyParameters) PublicKeyFactory.createKey(publicKeyBytes);
+        out.println("Public key from EC     : " + bpubKey);
+
+       // ECPoint Q = domainParameters.getCurve().decodePoint(publicKeyBytes); // Q see ECTest in bouncy castle testECDSAP256sha256
+
+
+        //out.println("Q                      : " + Q);
+        //ECPublicKeyParameters pubKey = new ECPublicKeyParameters(Q, domainParameters);
+
+
+        ecdsa.init(false, bpubKey);
+
+        return ecdsa.verifySignature(sha256DigestToVerify, R.getValue(), S.getValue());
     }
 
     /**
