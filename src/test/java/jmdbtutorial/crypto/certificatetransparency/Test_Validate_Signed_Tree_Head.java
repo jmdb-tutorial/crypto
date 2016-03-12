@@ -10,11 +10,11 @@ import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.crypto.signers.ECDSASigner;
 import org.bouncycastle.crypto.util.PublicKeyFactory;
+import org.bouncycastle.eac.jcajce.JcaPublicKeyConverter;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
-import org.bouncycastle.jce.spec.ECNamedCurveSpec;
+import org.bouncycastle.jce.spec.*;
 import org.junit.Test;
 import sun.security.util.DerValue;
 
@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.*;
 import java.security.spec.*;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPublicKeySpec;
 import java.util.Arrays;
 import java.util.Enumeration;
 
@@ -186,11 +188,30 @@ public class Test_Validate_Signed_Tree_Head {
         Security.addProvider(new BouncyCastleProvider());
 
 
+        java.util.Base64.Decoder decoder = java.util.Base64.getDecoder();
+
+        byte[] publicKeyBytes = decoder.decode(PILOT_LOG_PUBLICK_KEY_PEM);
+
+//        KeyFactory keyFactory = KeyFactory.getInstance("EC");
+//
+//
+//        ECNamedCurveParameterSpec parameterSpec = ECNamedCurveTable.getParameterSpec("P-256"); // P-256 or secp256r1
+//        ECParameterSpec params = new ECNamedCurveSpec(parameterSpec.getName(), parameterSpec.getCurve(), parameterSpec.getG(), parameterSpec.getN());
+//
+//        X509EncodedKeySpec x509EncodedKeySpec = new X509EncodedKeySpec(publicKeyBytes);
+//        out.println(x509EncodedKeySpec);
+//        ECPoint w = null;//new ECPoint(x509EncodedKeySpec.)
+//        ECPublicKeySpec publicKeySpec = new ECPublicKeySpec(w, params);
+//
+//
+//
+//        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+
         PublicKey publicKey = loadPublicKeyViaBc(PILOT_LOG_PUBLICK_KEY_PEM);
 
         out.println("Public Key    : " + publicKey);
 
-        Signature ecdsaVerify = Signature.getInstance("SHA256withECDSA", "BC");
+        Signature ecdsaVerify = Signature.getInstance("SHA256withECDSA");
         ecdsaVerify.initVerify(publicKey);
         ecdsaVerify.update(sha256DigestToVerify);
 
