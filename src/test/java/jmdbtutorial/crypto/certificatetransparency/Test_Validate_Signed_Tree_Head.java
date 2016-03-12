@@ -1,51 +1,44 @@
 package jmdbtutorial.crypto.certificatetransparency;
 
-import jmdbtutorial.crypto.Test_CryptoHashing;
 import jmdbtutorial.platform.http.Http;
 import jmdbtutorial.platform.http.HttpResponse;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.http.client.methods.HttpGet;
-import org.bouncycastle.asn1.*;
-import org.bouncycastle.asn1.nist.NISTNamedCurves;
-import org.bouncycastle.asn1.sec.SECNamedCurves;
-import org.bouncycastle.asn1.x9.X9ECParameters;
-import org.bouncycastle.crypto.CipherParameters;
-import org.bouncycastle.crypto.params.ECDomainParameters;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1StreamParser;
+import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.crypto.signers.ECDSASigner;
 import org.bouncycastle.crypto.util.PublicKeyFactory;
+import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.math.ec.ECCurve;
-import org.bouncycastle.math.ec.ECPoint;
-import org.bouncycastle.util.encoders.Hex;
+
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
+import org.bouncycastle.jce.spec.ECNamedCurveSpec;
 import org.junit.Test;
 import sun.security.util.DerValue;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.*;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
+import java.security.spec.*;
 import java.util.Arrays;
+import java.util.Enumeration;
 
 import static java.lang.String.format;
 import static java.lang.System.out;
 import static jmdbtutorial.crypto.DataSigning.base64AsBytes;
 import static jmdbtutorial.crypto.DataSigning.sha256Hash;
-import static jmdbtutorial.crypto.Test_CryptoHashing.printHexBytes;
 import static jmdbtutorial.crypto.Test_CryptoHashing.printUnsignedBytes;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNot.not;
 
 /**
  * https://tools.ietf.org/html/rfc6962#section-4.3
  * https://tools.ietf.org/html/rfc5246#section-4.7
  * https://www.imperialviolet.org/2013/08/01/ctpilot.html
  * https://tools.ietf.org/html/draft-laurie-pki-sunlight-09#section-3.5
- *
+ * https://www.bouncycastle.org/wiki/display/JA1/Elliptic+Curve+Key+Pair+Generation+and+Key+Factories#EllipticCurveKeyPairGenerationandKeyFactories-WithNamedCurves.2
  */
 public class Test_Validate_Signed_Tree_Head {
 
@@ -57,7 +50,6 @@ public class Test_Validate_Signed_Tree_Head {
     private static String PILOT_LOG_PUBLICK_KEY_PEM = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEfahLEimAoz2t01p3uMziiLOl/fHTDM0YDOhBRuiBARsV4UvxG2LdNgoIGLrtCzWE0J5APC2em4JlvR8EEEFMoA==";
 
 
-
     private Http http = new Http().init();
 
 
@@ -66,33 +58,55 @@ public class Test_Validate_Signed_Tree_Head {
         PublicKey key = parsePublicKeyFromString(PILOT_LOG_PUBLICK_KEY_PEM);
 
         out.println(key);
+
+
     }
 
+    @Test
+    public void available_curves_bc() {
+        out.println("Available curves:");
+        Enumeration names = ECNamedCurveTable.getNames();
+        while (names.hasMoreElements()) {
+            out.println(names.nextElement());
+        }
+    }
+
+    @Test
+    public void load_public_key_bc() throws NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+        String pilotLogPublickKeyPem = PILOT_LOG_PUBLICK_KEY_PEM;
+        Security.addProvider(new BouncyCastleProvider());
+
+        PublicKey publicKey = loadPublicKeyViaBc(pilotLogPublickKeyPem);
+
+        out.println("Public Key : " + publicKey);
+
+    }
+
+
     /**
-       digitally-signed struct {
-           Version version;
-           SignatureType signature_type = tree_hash;
-           uint64 timestamp;
-           uint64 tree_size;
-           opaque sha256_root_hash[32];
-       } TreeHeadSignature;
-
-     https://tools.ietf.org/html/rfc5246#section-4.7
-     Signature is in DSA form. which looks like this:
-
-     Dss-Sig-Value ::= SEQUENCE {
-        r INTEGER,
-        s INTEGER
-     }
-     from https://tools.ietf.org/html/rfc5246#section-4.7
-
-     This is encoded in DER encoding (https://en.wikipedia.org/wiki/X.690#DER_encoding)
-
-     https://tools.ietf.org/html/rfc6962#section-4.3
-     The hash is encoded in base64
-
-     // see https://tools.ietf.org/html/draft-laurie-pki-sunlight-09#section-3.5
-
+     * digitally-signed struct {
+     * Version version;
+     * SignatureType signature_type = tree_hash;
+     * uint64 timestamp;
+     * uint64 tree_size;
+     * opaque sha256_root_hash[32];
+     * } TreeHeadSignature;
+     * <p>
+     * https://tools.ietf.org/html/rfc5246#section-4.7
+     * Signature is in DSA form. which looks like this:
+     * <p>
+     * Dss-Sig-Value ::= SEQUENCE {
+     * r INTEGER,
+     * s INTEGER
+     * }
+     * from https://tools.ietf.org/html/rfc5246#section-4.7
+     * <p>
+     * This is encoded in DER encoding (https://en.wikipedia.org/wiki/X.690#DER_encoding)
+     * <p>
+     * https://tools.ietf.org/html/rfc6962#section-4.3
+     * The hash is encoded in base64
+     * <p>
+     * // see https://tools.ietf.org/html/draft-laurie-pki-sunlight-09#section-3.5
      */
     @Test
     public void validateSignedTreeHead() throws Exception {
@@ -106,8 +120,7 @@ public class Test_Validate_Signed_Tree_Head {
         out.println(sthResponse.toString());
 
 
-
-        ByteBuffer buf = ByteBuffer.allocate(2+8+8+32);
+        ByteBuffer buf = ByteBuffer.allocate(2 + 8 + 8 + 32);
 
         buf.put(LOG_VERSION);
         buf.put(TREE_HASH);
@@ -157,28 +170,34 @@ public class Test_Validate_Signed_Tree_Head {
         out.println("Raw signature.length     :  " + rawSignature.length);
 
 
-        //boolean isValid = validateUsingJdk(sha256DigestToVerify, logPublicKey, signatureBytesEncoded);
 
-        boolean isValid = verifySignatureRaw(sha256DigestToVerify, logPublicKey, signatureBytesEncoded);
+        boolean isValid = verifySignatureDirectBc(sha256DigestToVerify, logPublicKey, signatureBytesEncoded);
 
-        //boolean isValid = validateUsingJCE(sha256DigestToVerify, logPublicKey, signatureBytesEncoded);
+        // Can't get this to work.
+        //boolean isValid = verifyUsingJCE(sha256DigestToVerify, logPublicKey, signatureBytesEncoded);
 
         out.println("Is Valid : " + isValid);
 
 
+        assertThat(isValid, is(true));
     }
 
-    private boolean validateUsingJCE(byte[] sha256DigestToVerify, PublicKey logPublicKey, byte[] signatureBytesEncoded) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, SignatureException {
+    private boolean verifyUsingJCE(byte[] sha256DigestToVerify, PublicKey logPublicKey, byte[] signatureBytesEncoded) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, SignatureException, InvalidKeySpecException, IOException {
         Security.addProvider(new BouncyCastleProvider());
 
+
+        PublicKey publicKey = loadPublicKeyViaBc(PILOT_LOG_PUBLICK_KEY_PEM);
+
+        out.println("Public Key    : " + publicKey);
+
         Signature ecdsaVerify = Signature.getInstance("SHA256withECDSA", "BC");
-        ecdsaVerify.initVerify(logPublicKey);
+        ecdsaVerify.initVerify(publicKey);
         ecdsaVerify.update(sha256DigestToVerify);
 
         return ecdsaVerify.verify(signatureBytesEncoded);
     }
 
-    private boolean verifySignatureRaw(byte[] sha256DigestToVerify, PublicKey logPublicKey, byte[] signatureBytesEncoded) throws IOException {
+    private boolean verifySignatureDirectBc(byte[] sha256DigestToVerify, PublicKey logPublicKey, byte[] signatureBytesEncoded) throws IOException {
         ASN1StreamParser parser = new ASN1StreamParser(signatureBytesEncoded);
         ASN1Encodable asn1Encodable = parser.readObject();
 
@@ -194,24 +213,13 @@ public class Test_Validate_Signed_Tree_Head {
 
         ECDSASigner ecdsa = new ECDSASigner();
 
-        X9ECParameters p = NISTNamedCurves.getByName("P-256");
-        // Could also be this but the public key tells us its P-256//X9ECParameters p = SECNamedCurves.getByName("secp224k1");
-        ECDomainParameters domainParameters = new ECDomainParameters(p.getCurve(), p.getG(), p.getN(), p.getH());
-
-        out.println("public key             : " + logPublicKey);
-
         java.util.Base64.Decoder decoder = java.util.Base64.getDecoder();
 
         byte[] publicKeyBytes = decoder.decode(PILOT_LOG_PUBLICK_KEY_PEM);
 
         ECPublicKeyParameters bpubKey = (ECPublicKeyParameters) PublicKeyFactory.createKey(publicKeyBytes);
-        out.println("Public key from EC     : " + bpubKey);
-
-       // ECPoint Q = domainParameters.getCurve().decodePoint(publicKeyBytes); // Q see ECTest in bouncy castle testECDSAP256sha256
-
-
-        //out.println("Q                      : " + Q);
-        //ECPublicKeyParameters pubKey = new ECPublicKeyParameters(Q, domainParameters);
+        out.println("Public key params from EC     : " + bpubKey.getParameters());
+        out.println("Public key Q                  : " + bpubKey.getQ());
 
 
         ecdsa.init(false, bpubKey);
@@ -227,15 +235,6 @@ public class Test_Validate_Signed_Tree_Head {
     }
 
 
-    private static boolean validateUsingJdk(byte[] sha256DigestToVerify, PublicKey logPublicKey, byte[] signatureBytesEncoded) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
-        Signature signature = Signature.getInstance("SHA256withECDSA");
-
-        signature.initVerify(logPublicKey);
-
-        signature.update(sha256DigestToVerify);
-
-        return signature.verify(signatureBytesEncoded);
-    }
 
     private byte[] parseBytesFromDER(byte[] input) throws Exception {
         DerValue val = new DerValue(input);
@@ -245,6 +244,7 @@ public class Test_Validate_Signed_Tree_Head {
 
     /**
      * From http://stackoverflow.com/a/27621696
+     *
      * @param publicKey
      * @return
      * @throws IOException
@@ -275,7 +275,7 @@ public class Test_Validate_Signed_Tree_Head {
                     response.longValue("timestamp"),
                     response.stringValue("sha256_root_hash"),
                     response.stringValue("tree_head_signature")
-                );
+            );
 
         }
 
@@ -300,4 +300,25 @@ public class Test_Validate_Signed_Tree_Head {
 
         }
     }
+    private static PublicKey loadPublicKeyViaBc(String pilotLogPublickKeyPem) throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
+        java.util.Base64.Decoder decoder = java.util.Base64.getDecoder();
+
+
+        byte[] publicKeyBytes = decoder.decode(pilotLogPublickKeyPem);
+
+        ECPublicKeyParameters bpubKey = (ECPublicKeyParameters) PublicKeyFactory.createKey(publicKeyBytes);
+
+        ECNamedCurveParameterSpec parameterSpec = ECNamedCurveTable.getParameterSpec("P-256"); // P-256 or secp256r1
+        ECParameterSpec params = new ECNamedCurveSpec(parameterSpec.getName(), parameterSpec.getCurve(), parameterSpec.getG(), parameterSpec.getN());
+        ECPublicKeySpec publicKeySpec = new ECPublicKeySpec(
+                new ECPoint(bpubKey.getQ().getXCoord().toBigInteger(), bpubKey.getQ().getYCoord().toBigInteger()),
+                params);
+
+
+        KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", "BC");
+
+
+        return keyFactory.generatePublic(publicKeySpec);
+    }
+
 }
