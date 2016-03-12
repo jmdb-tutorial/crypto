@@ -176,8 +176,8 @@ public class Test_Validate_Signed_Tree_Head {
 
 
         //boolean isValid = verifySignatureDirectBc(sha256DigestToVerify, signatureBytesEncoded);
+        //boolean isValid = verifyUsingJCE_BC(bytesToVerify, signatureBytesEncoded);
 
-        // Can't get this to work.
         boolean isValid = verifyUsingJCE(bytesToVerify, signatureBytesEncoded);
 
         out.println("Is Valid : " + isValid);
@@ -186,7 +186,7 @@ public class Test_Validate_Signed_Tree_Head {
         assertThat(isValid, is(true));
     }
 
-    private boolean verifyUsingJCE(byte[] bytesToVerify,  byte[] signatureBytesEncoded) throws GeneralSecurityException, IOException {
+    private static boolean verifyUsingJCE_BC(byte[] bytesToVerify, byte[] signatureBytesEncoded) throws GeneralSecurityException, IOException {
         BouncyCastleProvider provider = new BouncyCastleProvider();
         Security.addProvider(provider);
 
@@ -209,6 +209,28 @@ public class Test_Validate_Signed_Tree_Head {
         out.println("Public Key    : " + publicKey);
 
         Signature ecdsaVerify = Signature.getInstance("SHA256withECDSA", "BC");
+        ecdsaVerify.initVerify(publicKey);
+        ecdsaVerify.update(bytesToVerify);// Note we don't pass the HASH in here it does it for us!
+
+        return ecdsaVerify.verify(signatureBytesEncoded);
+    }
+
+    private static boolean verifyUsingJCE(byte[] bytesToVerify, byte[] signatureBytesEncoded) throws GeneralSecurityException, IOException {
+
+
+        java.util.Base64.Decoder decoder = java.util.Base64.getDecoder();
+
+        byte[] publicKeyBytes = decoder.decode(PILOT_LOG_PUBLICK_KEY_PEM);
+
+        KeyFactory keyFactory = KeyFactory.getInstance("EC"); // Can use the sun one if you want, just don't put the "BC" param
+
+        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
+
+        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+
+        out.println("Public Key    : " + publicKey);
+
+        Signature ecdsaVerify = Signature.getInstance("SHA256withECDSA");
         ecdsaVerify.initVerify(publicKey);
         ecdsaVerify.update(bytesToVerify);// Note we don't pass the HASH in here it does it for us!
 
