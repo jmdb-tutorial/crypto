@@ -186,7 +186,7 @@ public class Test_Validate_Signed_Tree_Head {
         assertThat(isValid, is(true));
     }
 
-    private boolean verifyUsingJCE(byte[] bytesToVerify, byte[] sha256DigestToVerify, PublicKey logPublicKey, byte[] signatureBytesEncoded) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, SignatureException, InvalidKeySpecException, IOException {
+    private boolean verifyUsingJCE(byte[] bytesToVerify, byte[] sha256DigestToVerify, PublicKey logPublicKey, byte[] signatureBytesEncoded) throws GeneralSecurityException, IOException {
         BouncyCastleProvider provider = new BouncyCastleProvider();
         Security.addProvider(provider);
 
@@ -196,7 +196,15 @@ public class Test_Validate_Signed_Tree_Head {
 
         debugHash(bytesToVerify);
 
-        PublicKey publicKey = loadPublicKeyViaBc(PILOT_LOG_PUBLICK_KEY_PEM);
+        java.util.Base64.Decoder decoder = java.util.Base64.getDecoder();
+
+        byte[] publicKeyBytes = decoder.decode(PILOT_LOG_PUBLICK_KEY_PEM);
+
+        KeyFactory keyFactory = KeyFactory.getInstance("EC");
+
+        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
+
+        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
 
         out.println("Public Key    : " + publicKey);
 
