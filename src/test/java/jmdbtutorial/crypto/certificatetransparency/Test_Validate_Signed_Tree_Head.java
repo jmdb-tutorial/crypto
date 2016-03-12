@@ -3,27 +3,27 @@ package jmdbtutorial.crypto.certificatetransparency;
 import jmdbtutorial.platform.http.Http;
 import jmdbtutorial.platform.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.bouncycastle.asn1.ASN1Encodable;
-import org.bouncycastle.asn1.ASN1Integer;
-import org.bouncycastle.asn1.ASN1StreamParser;
-import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.*;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.crypto.signers.ECDSASigner;
 import org.bouncycastle.crypto.util.PublicKeyFactory;
-import org.bouncycastle.eac.jcajce.JcaPublicKeyConverter;
+import org.bouncycastle.jcajce.provider.asymmetric.util.EC5Util;
 import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.ECPointUtil;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
-import org.bouncycastle.jce.spec.*;
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
+import org.bouncycastle.math.ec.ECCurve;
 import org.junit.Test;
 import sun.security.util.DerValue;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.*;
-import java.security.spec.*;
-import java.security.spec.ECParameterSpec;
-import java.security.spec.ECPublicKeySpec;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Enumeration;
 
@@ -31,6 +31,7 @@ import static java.lang.String.format;
 import static java.lang.System.out;
 import static jmdbtutorial.crypto.DataSigning.base64AsBytes;
 import static jmdbtutorial.crypto.DataSigning.sha256Hash;
+import static jmdbtutorial.crypto.Test_CryptoHashing.printHexBytes;
 import static jmdbtutorial.crypto.Test_CryptoHashing.printUnsignedBytes;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -63,6 +64,7 @@ public class Test_Validate_Signed_Tree_Head {
 
 
     }
+
 
     @Test
     public void available_curves_bc() {
@@ -141,6 +143,7 @@ public class Test_Validate_Signed_Tree_Head {
         byte[] sha256DigestToVerify = sha256Hash(bytesToVerify);
 
         out.println("Hash to verify (uint)    :" + printUnsignedBytes(sha256DigestToVerify, 4));
+        out.println("Hash to verify (hex)     :" + printHexBytes(sha256DigestToVerify, 1));
         PublicKey logPublicKey = parsePublicKeyFromString(PILOT_LOG_PUBLICK_KEY_PEM);
 
 
@@ -172,11 +175,10 @@ public class Test_Validate_Signed_Tree_Head {
         out.println("Raw signature.length     :  " + rawSignature.length);
 
 
-
-        boolean isValid = verifySignatureDirectBc(sha256DigestToVerify, logPublicKey, signatureBytesEncoded);
+        //boolean isValid = verifySignatureDirectBc(sha256DigestToVerify, signatureBytesEncoded);
 
         // Can't get this to work.
-        //boolean isValid = verifyUsingJCE(sha256DigestToVerify, logPublicKey, signatureBytesEncoded);
+        boolean isValid = verifyUsingJCE(bytesToVerify, sha256DigestToVerify, logPublicKey, signatureBytesEncoded);
 
         out.println("Is Valid : " + isValid);
 
@@ -184,41 +186,45 @@ public class Test_Validate_Signed_Tree_Head {
         assertThat(isValid, is(true));
     }
 
-    private boolean verifyUsingJCE(byte[] sha256DigestToVerify, PublicKey logPublicKey, byte[] signatureBytesEncoded) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, SignatureException, InvalidKeySpecException, IOException {
-        Security.addProvider(new BouncyCastleProvider());
+    private boolean verifyUsingJCE(byte[] bytesToVerify, byte[] sha256DigestToVerify, PublicKey logPublicKey, byte[] signatureBytesEncoded) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, SignatureException, InvalidKeySpecException, IOException {
+        BouncyCastleProvider provider = new BouncyCastleProvider();
+        Security.addProvider(provider);
 
+        out.println("Has Provider : " + provider.hasAlgorithm("Signature", "SHA256withECDSA"));
 
-        java.util.Base64.Decoder decoder = java.util.Base64.getDecoder();
+        debugRandSViaStandardDSAEncoder(signatureBytesEncoded);
 
-        byte[] publicKeyBytes = decoder.decode(PILOT_LOG_PUBLICK_KEY_PEM);
-
-//        KeyFactory keyFactory = KeyFactory.getInstance("EC");
-//
-//
-//        ECNamedCurveParameterSpec parameterSpec = ECNamedCurveTable.getParameterSpec("P-256"); // P-256 or secp256r1
-//        ECParameterSpec params = new ECNamedCurveSpec(parameterSpec.getName(), parameterSpec.getCurve(), parameterSpec.getG(), parameterSpec.getN());
-//
-//        X509EncodedKeySpec x509EncodedKeySpec = new X509EncodedKeySpec(publicKeyBytes);
-//        out.println(x509EncodedKeySpec);
-//        ECPoint w = null;//new ECPoint(x509EncodedKeySpec.)
-//        ECPublicKeySpec publicKeySpec = new ECPublicKeySpec(w, params);
-//
-//
-//
-//        PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+        debugHash(bytesToVerify);
 
         PublicKey publicKey = loadPublicKeyViaBc(PILOT_LOG_PUBLICK_KEY_PEM);
 
         out.println("Public Key    : " + publicKey);
 
-        Signature ecdsaVerify = Signature.getInstance("SHA256withECDSA");
+        Signature ecdsaVerify = Signature.getInstance("SHA256withECDSA", "BC");
         ecdsaVerify.initVerify(publicKey);
-        ecdsaVerify.update(sha256DigestToVerify);
+        ecdsaVerify.update(bytesToVerify);// Note we don't pass the HASH in here it does it for us!
 
         return ecdsaVerify.verify(signatureBytesEncoded);
     }
 
-    private boolean verifySignatureDirectBc(byte[] sha256DigestToVerify, PublicKey logPublicKey, byte[] signatureBytesEncoded) throws IOException {
+    /**
+     * From DSABase.engineVerify
+     */
+    private static void debugHash(byte[] sha256DigestToVerify) {
+
+        SHA256Digest digest = new SHA256Digest();
+        digest.update(sha256DigestToVerify, 0, sha256DigestToVerify.length);
+        byte[]  hash = new byte[digest.getDigestSize()];
+
+        digest.doFinal(hash, 0);
+
+        out.println("Hash                  " + digest.toString());
+        out.println("Hash to verify (uint) " + printUnsignedBytes(hash, 4));
+
+
+    }
+
+    private boolean verifySignatureDirectBc(byte[] sha256DigestToVerify, byte[] signatureBytesEncoded) throws IOException {
         ASN1StreamParser parser = new ASN1StreamParser(signatureBytesEncoded);
         ASN1Encodable asn1Encodable = parser.readObject();
 
@@ -231,6 +237,9 @@ public class Test_Validate_Signed_Tree_Head {
 
         out.println("R                      : " + R);
         out.println("S                      : " + S);
+
+
+
 
         ECDSASigner ecdsa = new ECDSASigner();
 
@@ -249,12 +258,27 @@ public class Test_Validate_Signed_Tree_Head {
     }
 
     /**
+     * Taken from StdDSAEncoder in SignatureSpi in bouncy castle
+     */
+    private static void debugRandSViaStandardDSAEncoder(byte[] signatureBytesEncoded) throws IOException {
+        ASN1Sequence s = (ASN1Sequence)ASN1Primitive.fromByteArray(signatureBytesEncoded);
+        BigInteger[] sig = new BigInteger[2];
+
+        sig[0] = ASN1Integer.getInstance(s.getObjectAt(0)).getValue();
+        sig[1] = ASN1Integer.getInstance(s.getObjectAt(1)).getValue();
+
+        out.println("From StdDSAEncoder");
+
+        out.println("R                      : " + sig[0]);
+        out.println("S                      : " + sig[1]);
+    }
+
+    /**
      * From org.certificatetransparency.ctlog.serialization.Deserializer
      */
     public static int bytesForDataLength(int maxDataLength) {
         return (int) (Math.ceil(Math.log(maxDataLength) / Math.log(2)) / 8);
     }
-
 
 
     private byte[] parseBytesFromDER(byte[] input) throws Exception {
@@ -321,25 +345,40 @@ public class Test_Validate_Signed_Tree_Head {
 
         }
     }
+
     private static PublicKey loadPublicKeyViaBc(String pilotLogPublickKeyPem) throws IOException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException {
         java.util.Base64.Decoder decoder = java.util.Base64.getDecoder();
 
 
         byte[] publicKeyBytes = decoder.decode(pilotLogPublickKeyPem);
 
-        ECPublicKeyParameters bpubKey = (ECPublicKeyParameters) PublicKeyFactory.createKey(publicKeyBytes);
+        ECNamedCurveParameterSpec params = ECNamedCurveTable.getParameterSpec("P-256"); // secp256k1
+        ECCurve curve = params.getCurve();
 
-        ECNamedCurveParameterSpec parameterSpec = ECNamedCurveTable.getParameterSpec("P-256"); // P-256 or secp256r1
-        ECParameterSpec params = new ECNamedCurveSpec(parameterSpec.getName(), parameterSpec.getCurve(), parameterSpec.getG(), parameterSpec.getN());
-        ECPublicKeySpec publicKeySpec = new ECPublicKeySpec(
-                new ECPoint(bpubKey.getQ().getXCoord().toBigInteger(), bpubKey.getQ().getYCoord().toBigInteger()),
-                params);
+        java.security.spec.EllipticCurve ellipticCurve = EC5Util.convertCurve(curve, params.getSeed());
 
+        out.println("Curve : " + ellipticCurve.getField());
+        out.println("Public Key: " + printHexBytes(publicKeyBytes, 1));
+        out.println("Public Key length : " + publicKeyBytes.length);
+
+        SubjectPublicKeyInfo pubKeyInfo = SubjectPublicKeyInfo.getInstance(ASN1Primitive.fromByteArray(publicKeyBytes));
+
+        out.println("Algorithmg: " + pubKeyInfo.getAlgorithm());
+
+        // From https://bitcointalk.org/index.php?topic=2899.0
+
+        java.security.spec.ECPoint point = ECPointUtil.decodePoint(ellipticCurve, pubKeyInfo.getPublicKeyData().getBytes());
+
+        out.println("point.X : " + point.getAffineX());
+        out.println("point.Y : " + point.getAffineY());
+
+        java.security.spec.ECParameterSpec params2 = EC5Util.convertSpec(ellipticCurve, params);
+        java.security.spec.ECPublicKeySpec keySpec = new java.security.spec.ECPublicKeySpec(point, params2);
 
         KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", "BC");
+        return keyFactory.generatePublic(keySpec);
 
 
-        return keyFactory.generatePublic(publicKeySpec);
     }
 
 }
