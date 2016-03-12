@@ -320,11 +320,17 @@ public class Test_CryptoHashing {
     }
 
     public static String printUnsignedBytes(byte[] bytes) {
+        return printUnsignedBytes(bytes, 9);
+    }
+
+    public static String printUnsignedBytes(byte[] bytes, int padding) {
+        final String formatString = format("%%%dd", padding);
+
         StringBuilder sb = new StringBuilder();
 
         for (int i = 0; i < bytes.length; ++i) {
             Byte B = bytes[i];
-            sb.append(format("%9d", B.intValue() & 0xFF));
+            sb.append(format(formatString, B.intValue() & 0xFF));
         }
         return sb.toString();
     }
