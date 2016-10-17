@@ -230,7 +230,7 @@ public class Test_CryptoHashing {
         printByteArray(input.getBytes("UTF-8"));
     }
 
-    private static void printByteArray(byte[] bytes) {
+    public static void printByteArray(byte[] bytes) {
         int[] unsignedBytes = unsignedBytes(bytes);
 
         out.println(format("bytes.length     : %9d", bytes.length));
@@ -240,8 +240,15 @@ public class Test_CryptoHashing {
         out.println("bytes (binary)   : " + printIntBytesBinary(unsignedBytes));
     }
 
+    public static String prinBytesBinary(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(" ").append(padString(formatBinaryString(Integer.toBinaryString(Byte.toUnsignedInt(b))), '0', 8));
+        }
+        return sb.toString();
+    }
 
-    private static String printIntBytesBinary(int[] unsignedBytes) {
+    public static String printIntBytesBinary(int[] unsignedBytes) {
         StringBuilder sb = new StringBuilder();
         for (int b : unsignedBytes) {
             sb.append(" ").append(padString(formatBinaryString(Integer.toBinaryString(b)), '0', 8));
