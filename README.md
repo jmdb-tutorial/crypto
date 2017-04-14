@@ -22,7 +22,7 @@ There are different implementations of cryptographic functions.
 
 [Diffie-Hellman Key Exchange](https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange)
 
-
+[https://github.com/multiformats/multihash](https://github.com/multiformats/multihash)
 
 **Elliptic Curve**
 
