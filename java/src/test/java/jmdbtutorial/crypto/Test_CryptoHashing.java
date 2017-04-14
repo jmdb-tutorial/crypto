@@ -180,6 +180,22 @@ public class Test_CryptoHashing {
         out.println(printRawBytes(bytes));
     }
 
+    @Test
+    public void bitmask_nibbles() {
+        final byte BYTE = 0b01111111;
+        final byte SHIFTED = BYTE >> 4;
+
+        byte[] bytes = {BYTE}; // because a byte is a signed integer in java, cant set it to 0xff
+
+        out.println(printRawBytes(bytes));
+        out.println(printHexBytes(bytes));
+        out.println(printBytesBinary(bytes));
+
+        out.println(printBytesBinary(new byte[] {(BYTE & 0xF)}));
+
+        out.println(printBytesBinary(new byte[] {(SHIFTED & 0xF)}));
+    }
+
     private static final char[] hexCode = "0123456789abcdef".toCharArray();
 
 
@@ -188,16 +204,70 @@ public class Test_CryptoHashing {
     }
 
     /**
+     * The bitshift operators return ints, not more bytes!
+     *
+     * So the problem is that when you bitshift right, your actually bitshifting a lot more bytes
+     * than you bargained for because it returns an integer because an integer has 4 bytes
+     * And when you cast it up from a byte it pads the left with 1111111's
+     *
+     *  So when you bitshift >> 4 you actually end up with
+     *  From
+     *  1111 0000
+     *  to
+     *  1111 1111
+     *  When you WANTED
+     *  0000 1111
+     *
+     *  So you then mask off the left hand 4 bits by ANDing with the mask:
+     *  1111 0000
+     *  Which is (0xf)
+     */
+    @Test
+    public void shift_without_mask() {
+        byte a = -16;
+        out.println("Mask        : " + printBytesBinary(new byte[]{0xf}));
+        out.println("Input       : " + printBytesBinary(new byte[]{a}));
+        out.println(">> 4        : " + printBytesBinary(new byte[] {(byte)(a >> 4)}));
+        out.println(">> 4 & 0xf  : " + printBytesBinary(new byte[] {(byte)((a >> 4) & 0xf)}));
+
+        out.println("\nas Int            :  " + Integer.toBinaryString((int) a));
+        out.println(">> 4 as Int       :  " + Integer.toBinaryString((a >> 4)));
+        out.println(">> 4 & 0xf as Int :  " + Integer.toBinaryString((a >> 4) & 0xf));
+        out.println("As int >> 4       :  " + (a >> 4));
+        out.println("As int >> 4 & 0xf :  " + ((a >> 4) & 0xf));
+
+    }
+
+    /**
      * http://www.javamex.com/tutorials/conversion/decimal_hexadecimal.shtml
      * Also by looking in DataTypeconverter
+     * https://en.wikipedia.org/wiki/Hexadecimal
+     *
+     * A byte (octet) contains 8 bits.
+     * e.g. 10001111
+     *
+     * This would be represented in hex as:
+     * 0x8f
+     *
+     * f    f
+     * 1111 1111
+     *
+     * Each hex number represents a "nibble" (semi-octet) or 4 bits
+     *
+     * If you want to extract the nibbles, you first go for the one on the left (most significant)
+     * And SHIFT 4 to the right to give:
+     * 0    f
+     * 0000 1111
+     *
+     * To get the one on the right (least significant), simply mask off the left hand bits
      */
     public static String printHexBytes(byte[] data, int padding) {
 
         StringBuilder r = new StringBuilder(data.length * 2);
         for (byte b : data) {
             r.append(padString("", ' ', padding));
-            r.append(hexCode[(b >> 4) & 0xF]);
-            r.append(hexCode[(b & 0xF)]);
+            r.append(hexCode[(b >> 4) & 0xf]);
+            r.append(hexCode[(b & 0xf)]);
         }
         return r.toString();
 
@@ -234,13 +304,13 @@ public class Test_CryptoHashing {
         int[] unsignedBytes = unsignedBytes(bytes);
 
         out.println(format("bytes.length     : %9d", bytes.length));
-        out.println("bytes (unsigned) : " + printRawBytes(bytes));
-        out.println("bytes (signed)   : " + printIntBytes(unsignedBytes));
+        out.println("bytes (signed)   : " + printRawBytes(bytes));
+        out.println("bytes (unsigned) : " + printIntBytes(unsignedBytes));
         out.println("bytes (hex)      : " + printHexBytes(bytes));
         out.println("bytes (binary)   : " + printIntBytesBinary(unsignedBytes));
     }
 
-    public static String prinBytesBinary(byte[] bytes) {
+    public static String printBytesBinary(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
             sb.append(" ").append(padString(formatBinaryString(Integer.toBinaryString(Byte.toUnsignedInt(b))), '0', 8));
@@ -312,7 +382,8 @@ public class Test_CryptoHashing {
         String bigendian = "00000000000000001e8d6829a8a21adc5d38d0a473b144b6765798e61f98bd1d";
         String littlendian = reverseHex(bigendian);
 
-        out.println(littlendian);
+        out.println("Big Endian    : " + bigendian);
+        out.println("Little Endian : " + littlendian);
     }
 
     public static String printRawBytes(byte[] bytes) {
