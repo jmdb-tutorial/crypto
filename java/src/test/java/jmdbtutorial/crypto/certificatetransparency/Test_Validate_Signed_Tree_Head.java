@@ -175,18 +175,22 @@ public class Test_Validate_Signed_Tree_Head {
         out.println("Raw signature.length     :  " + rawSignature.length);
 
 
-        //boolean isValid = verifySignatureDirectBc(sha256DigestToVerify, signatureBytesEncoded);
-        //boolean isValid = verifyUsingJCE_BC(bytesToVerify, signatureBytesEncoded);
+        boolean isValid = verifySignatureDirectBc(sha256DigestToVerify, signatureBytesEncoded);
+        out.println("Is Valid (Direct 2 BC): " + isValid);
 
-        boolean isValid = verifyUsingJCE(bytesToVerify, signatureBytesEncoded);
+        isValid = verifyUsingJCE_BC(bytesToVerify, signatureBytesEncoded);
+        out.println("Is Valid (BC via JCE): " + isValid);
 
-        out.println("Is Valid : " + isValid);
+        isValid = verifyUsingJCE(bytesToVerify, signatureBytesEncoded);
+        out.println("Is Valid (JDK via BCE): " + isValid);
+
 
 
         assertThat(isValid, is(true));
     }
 
     private static boolean verifyUsingJCE_BC(byte[] bytesToVerify, byte[] signatureBytesEncoded) throws GeneralSecurityException, IOException {
+        out.println("\nValidating with Bouncy Castle via the JCE\n");
         BouncyCastleProvider provider = new BouncyCastleProvider();
         Security.addProvider(provider);
 
@@ -216,7 +220,7 @@ public class Test_Validate_Signed_Tree_Head {
     }
 
     private static boolean verifyUsingJCE(byte[] bytesToVerify, byte[] signatureBytesEncoded) throws GeneralSecurityException, IOException {
-
+        out.println("\nValidating using JDK via JCE\n");
 
         java.util.Base64.Decoder decoder = java.util.Base64.getDecoder();
 
@@ -255,6 +259,8 @@ public class Test_Validate_Signed_Tree_Head {
     }
 
     private boolean verifySignatureDirectBc(byte[] sha256DigestToVerify, byte[] signatureBytesEncoded) throws IOException {
+        out.println("\nValidating directly using Bouncy Castle\n");
+
         ASN1StreamParser parser = new ASN1StreamParser(signatureBytesEncoded);
         ASN1Encodable asn1Encodable = parser.readObject();
 

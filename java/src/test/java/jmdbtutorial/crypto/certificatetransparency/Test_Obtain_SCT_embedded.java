@@ -72,8 +72,7 @@ public class Test_Obtain_SCT_embedded {
         // Attempt to build the certification chain and verify it
         PKIXCertPathBuilderResult verifiedCertChain = verifyCertificate(toVerify, trustedRootCerts, intermediateCerts);
 
-        //out.println("Verified chain: " + verifiedCertChain);
-
+        out.println("Certificat path is valid as no exceptions thrown!)");
         out.println("Cert Path: " + verifiedCertChain.getCertPath().getType());
         out.println("Trust Anchor (Root Cert): " + verifiedCertChain.getTrustAnchor().getTrustedCert().getSubjectDN());
 
