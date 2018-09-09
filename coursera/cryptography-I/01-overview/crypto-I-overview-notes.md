@@ -109,13 +109,16 @@ m = W H A T A N I C E D A Y T O D A Y
 -------------------------------------
 c = Z Z Z J U C L U D T U N W G C Q S
 ```
-def add_two_letters (a b):
-    new_letter = (index_of_letter(a) + index_of_letter(b)) % 26
-    return letter_from_index(new_letter)
+
 
 Take each letter as a number from 1-26 add them together mod 26 and then you get the encrypted version
 
 See [vigener_cipher.py](./vigener_cipher.py)
+
+As background its also worth looking at how to calculate modulo cycles in code
+([modulo.py](./modulo.py))
+
+
 
 
 
