@@ -33,9 +33,8 @@ def letters():
         print "%s : %d" % (letter_from_index(x), x)
 
 def add_two_letters (a, b):
-    new_letter = (index_of_letter(a) + index_of_letter(b)) % 26
-    if (new_letter == 0):
-        new_letter = 26
+    sum_of_two_letters = (index_of_letter(a) + index_of_letter(b))
+    new_letter = ((sum_of_two_letters - 1) % 26) + 1
     return letter_from_index(new_letter)
 
 
