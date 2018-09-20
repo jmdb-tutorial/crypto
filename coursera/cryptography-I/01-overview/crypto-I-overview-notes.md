@@ -1148,3 +1148,216 @@ Its advantage of distringuishing between the distributions is negligible if true
 Can use this notation to define security for a PRG:
 
 a PRG is secure if{ k<-R-K : G(k) } ≈_p uniform( {0,1}^n)
+
+## Semantic Security
+
+### Definition
+
+Security is always described in terms of 
+ 
+ - What can an attacker do?
+ - What does an attacker want to do?
+ 
+ As stream ciphers only ever use a one time key, we can limit the attackers abilities to obtaining one ciphertext (for now)
+ 
+ 
+ Potential security requirements:
+ 
+ 
+ attempt#1 : attacker cannot recover secret key
+ 
+ - If had a stupid cipher E(k, m) = m - whilst the cipher is clearly not secure, there is no way the attacker can roecover the secret key and therefore it would be considered secure by this definition.
+ 
+ attempt#2 : attacker cannot recover all the plaintext
+ 
+ what about E(k, m0 || m1) = m0||E(k,m1) where the second part of the message is encrypted say with a one time pad
+ 
+ - well this would satisfy the description of being secure because theres no way the attacker can recover all the plaintext but its clearly not secure because it leaked half the plaintext
+ 
+ 
+Recall Shannon's idea: 
+
+Ciphertext (CT) should reveal no "info" about Plaintext(PT)
+
+Shannons definition of perfect secrecy:
+
+let (E, D) be a cipher over (K, M, C)
+
+(E,D) has perfect secrecy if forAll m0, m1 inset M ( | m0 | = | m1 | ) - where the size of the messages m0 and m1 are the same
+
+{ E(k, m0) } = { E?(k, m1)}  where k<-K {} means distribution of in this context
+
+That is, the distribution of ciophertexts for m0 and m1 is the same - for any key taken from K which means that it is not possible to have any information about which message was encrypted from the cipher text
+
+Attacker cannot tell wether a particular cipher text come from distirbution of m0 or m1 and therefore could not tell which message relates to which cipher text
+
+Problem here is that you need really klong kets (at least as long as the message) and the stream cipher in particular cant satisfy this definition
+
+Instead of requiring that the two distributions be IDENTICAL, can just require that they are *computationaly indistinguishable* 
+
+(E,D) has perfect secrecy if:
+
+{ E(k, m0) } ≈_p { E(k, m1) } where k <- K
+
+Means that the poor "efficient" attacker cannot distinguish between the distributions, even though they might be very different, just given a sample from one distribution and a sample from the other, they cant tell which distibution they came from.
+
+ALmost right but need one more constraint:
+
+Only needs to hold for pairs m0 and m1 which an attacker can actually exhibit - I think this mean given an attacker only has access to two cipher texts, it only has to apply for that pair, not for all possible messages
+
+By exhibit it means present to the cipher. I.e. if the attacker can fool the cipher into encrypting something it allready knows about 
+
+So for example the attacker sends
+
+"abcdefg"
+
+and
+
+"hijklmn"
+
+And can recieve the cipher text.
+
+
+### Example - one-time key
+
+Example for a one time key - i.e. where the attacker is only ever given one ciphertext
+
+Talk about semantic security as defining experiments,
+
+Define these as two experiments EXP(0) and EXP(1), and more generally as EXP(b) where b = 0, 1
+
+Have a challenger and an adversary
+
+
+Adv. A (analogue of a statistical test in the world of PRGs)
+
+Two challengers one for EXP(0) and one for EXP(1) but so similar can consider them as a single challenger
+
+Challenger is going to pick a random key.
+
+The adversary sends the challenger two messages, m0 and m1 - only constraint is that the lengths of m0 and m1 are the same
+
+In EXP(0) the challenger will output the result of encrtypting m0, in EXP(1) the result of encrypting m1
+
+
+```
+Challenger              <------------              Adv A
+                    m0, m1 inset M : |m0| = |m1| 
+k<-K           
+
+                        ------------>
+                    c <- E(k, m_b)
+                    
+```
+
+Then the adversary has to guess wether or not the ciphertext came from m0 or m1
+
+some notation:
+
+for b=0,1: W_b := [ event that EXB(b)=1 ]
+
+Means that given the event 0, the adversary output 1, and given the event 1 adversary output 1. Adversary outputs 0 if it thinks the message was m0 and 1 if it thinks m1
+
+Can define the advantage (semantic security advantage) of the adversary by
+
+Adv_ss[A, E] := | Pr[W0] - Pr[W1] | where the result must be in the set of range |0,1|
+
+looking at wethere the adversary behaves differently when given m0 compared to when given m1 - i.e. if was just random would be 1/2 for each and so advantage would be zero
+
+If in both experiments adversary output 1 with same probability, it means the adv wasnt able to distinguish between wether the ciphertext came from m0 or m1
+
+cannot distinguish the two experiments
+
+if the adv can output 1 in one experiment with a significantly different probabilty, then it could distinguish between the messages.
+
+if close to zero could not distinguish
+
+if close to 1 was able to distinguish
+
+
+#### Definition formal
+
+Def: `E is **semantically secure** if for all "efficient" A (adversarys) 
+
+Adv_ss[A, `E] is "negligible" (i.e. close to zero)
+
+other way:
+
+for all explicit m0, m1 inset M: {E(k,m0) }  ≈_p { E(k, m1) }
+
+the distribution of the ciphertexts is computationally indistinguishable from m0 and m1
+
+This is a very elegant definition
+
+### Example - broken algortihm is not semantically secure
+
+Suppose an efficient adversary A can always deduce the LSB (least significant bit) of Plaintext from ciphertext
+
+can show that `E = (E, D) - going to show that a system of this type is semantically secure, which conversley says that if a system **IS** semantically secure, then there is no attack of this type.
+
+GOing to use the adversary to break semantic security
+
+Adversary B is going to use adversary A in its belly
+
+Adversary going to generate two messages, one with the lsb of 0 and one with lsb of 1
+
+m0, LSB(m0) = 0
+m1, LSB(m1) = 1
+
+We just forward the cipher text to Adversary A, which will tell us the LSB of the plaintext
+
+So adversary is going to output 0 or 1, which is basically the output we need. So we will output b'
+
+Basically we need to output 0 if we think the ciphertext is m0 and 1 if we think its m1 so basically this is the same as what the Adv A will do
+
+So the Advantage of our adversary is :
+
+Adv_ss[B `E] = | Pr [ EXP(0) = 1 ] - Pr [ EXP(1)=1 ] |
+
+we can always guess right so the chances that we will output 1 for m0 is 0 and the chances that we will output 1 for m1 is 1 so the advantage is -1
+
+0 - 1 
+
+Always calculate this withing the bounds |0, 1| so it ends up being 1 because its about the difference between them so write it like:
+
+this | 0 - 1 | = 1
+
+Which is a huge advantage
+
+Adversary completely broke the system. SO under symantic security just deducing the least significant bit is enough to break the system.
+
+ANy information about the plaintext that can be learned can break the system.
+
+e.g. iuf the adversdary could do an xor and get a different answer for m0 and m1
+
+concept of perfect secrecy just applied to efficient adversaries rather than all adversaries
+
+### Example - One time pad is semantically secure
+
+For one time pad, adversary gets back
+
+k xor m0 or k xor m1
+
+advantage is:
+
+Adv_ss[a `E] = | Pr [ A(k xor m0)=1] - Pr [ A(k xor m1)=1 ] | =
+
+Pr [A(k xor m0=1]
+
+because k is completely random, cannot distinguish between the two so the probability is 1/2 for each
+
+0 advantage is 0
+
+k xor m0 is identical to k xor m1 in its distribution - exactly the same distributino as inputs which means that the adversary is going to behave exactly the same in both cases because it was given EXACTLY the same distirbution.
+
+If it behaves in the same way for each experiment then the probabilitiyes will be equal and therefore the advantage is 0
+This prooves that the one time pad is semantically secure.
+
+Also one time pad is secure for ALL adversaries - dont even have to be "efficient" - NO adversary can distinguish the distributions because they are  identical, so no adverary no matter how smart will be able to tell them apart.
+
+Therefore the one time pad is semantically secure and has perfect secrecy.
+
+
+
+
+
