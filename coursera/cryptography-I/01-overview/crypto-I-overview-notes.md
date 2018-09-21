@@ -1355,9 +1355,98 @@ This prooves that the one time pad is semantically secure.
 
 Also one time pad is secure for ALL adversaries - dont even have to be "efficient" - NO adversary can distinguish the distributions because they are  identical, so no adverary no matter how smart will be able to tell them apart.
 
-Therefore the one time pad is semantically secure and has perfect secrecy.
+Therefore the one time pad is both semantically secure and has perfect secrecy.
 
 
 
 
+
+
+
+### Stream ciphers are semantically secure
+
+We can argue that a stream cipher with a secure PRG the stream cipher is semantically secure
+
+No hope of prooving this for shannons version of perfect security because a stream cipher uses short keys and perfect security requires keys as long as the message
+
+Thm: G : K -> {0,1}^n is a secure PRG =>
+
+Stream cipher E derived from G is semantically secure
+
+For  All semantic security adversary A, i.e. you give us an adversary A, we will build an adversary B such that
+
+Adv_ss[A, E] <= 2 * Adv_prg[B, G]
+
+We know that the advantage of a statistical test over G (being a semantically secure PRG) must be negligible because all statistical tests have negligible advantage for a sem.sec PRG
+
+If this is the case then the semantic security advantage of A over E must also be negligible in order to satisfy the inequality
+
+So how do we build such a thing?
+
+Let A be a semantic sec adversary against E
+
+Basically the Adversary needs to pass in two messages, m0 and m1 and decide which one it gets back in cipher text by emitting 0 if it was m0 and 1 if it was m1
+
+Challenger
+
+Picks key k <- K
+
+
+The ciphertext is m_b xor G(k) where b is either 0 or 1 for m0 or m1
+
+Going to play around with the setup.
+
+First the challenger picks an r r<-{0,1}^n
+
+So now the challenger switches from a pseudo random string to a truly random string. Since the advantage is 0 for a truly random string (the adversary can nevver distinguish which message is which) and the adversary cannot distinguish between the truly random string and the psuedorandom encrypted string it must also have advantage 0
+
+
+For the PRG
+
+W_b (W_0 and W_1) denote the event that b' (what the adversdary outputs 1 for either experiment 0 or 1)
+
+
+Also we have R_b (R_0 and R_1) which correspond to b' = 1 when the truly random generator is used. (m_b xor r)
+
+Proof: Let A be a sem. sec. adversary
+
+CLaim 1: | Pr[R0] - Pr[R1] | = Adv_ss(A, OPT) = 0
+
+We know that the advantage of A over a one time pad is zero because there is exactly the same probability of guessing R0 and R1 because they are indistinguishable
+
+
+
+-------------|------------|---------|-----------|-----------|
+             0         Pr[W0]     Pr[Rb]      Pr[W1]        1
+             
+             
+Want to demonstrate that Pr[W0] and Pr[W1] are close to eachother and Pr[Rb] showing Pr[Rb] as a single point because both Pr[R0] anmd Pr[R1] have the same value
+
+show that they are both close ro Pr[Rb] and therefore close to each other
+
+Claim 2 : `E: | Pr[Wb] - Pr[Rb] | = Adv_prg [B, G] - there exists an adversary B such that the distance between the two probabiities is equal to the advantage over (B, G)
+
+So we can now say that 
+
+Adv_ss[A, E] = | Pr[W0] - Pr[W1] | <= 2 * Adv_prg[B,G]
+
+
+
+Proof of Claim 2: Find `E: | Pr[Wb] - Pr[Rb] | = Adv_prg [B, G]
+
+Algorithm / Stat.test B - given a string is supposed to output 0 for not random or 1 for random, uses adversary A to do this
+
+First thing it does is get Adversary A to execute - it generates M0, and M1 and we give it 
+
+So what is the advantage of this statistical test against the generator:
+
+
+Adv_prg = | Pr             [B(r) = 1] - Pr     [B(G(k)) = 1] | = | Pr[R0] - Pr[W0] | 
+          | r <- {0,1}^n                k <-K                |
+
+So its the probability of B outputing one for a truly random distribution minus the probability given the pseudorandom distribtuion
+
+First part is exactly the same as the Probability of R0 - because its a truly random ecvent so it has to be the same as the R0 game
+
+Because we defined the R0 event and W0 event then these tihngs nescecarily have to be equal which is what we needed to proove in order to to proove claim 2.
 
