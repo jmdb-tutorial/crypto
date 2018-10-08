@@ -1,7 +1,9 @@
 
 import sys
 
-MSGS = ( ---  11 secret messages  --- )
+MSGS = [ "abcdefg",
+         "hijklmn",
+         "opqrstu"]
 
 def strxor(a, b):     # xor two strings of different lengths
     if len(a) > len(b):
@@ -21,3 +23,7 @@ def encrypt(key, msg):
 def main():
     key = random(1024)
     ciphertexts = [encrypt(key, msg) for msg in MSGS]
+
+    
+def str_as_ord(s):
+    return "".join([str(ord(x)) + ", " for x in s])
