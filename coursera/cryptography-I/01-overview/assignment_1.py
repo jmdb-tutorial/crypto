@@ -58,11 +58,15 @@ def display_messages(msgs):
         print sbytes
         i = i + 1
 
-
-def display_message(label="", msg=""):
+def bytes_as_str(msg):
     sbytes = ""
     for b in msg:
-        sbytes = sbytes + str(b) + " "
+        sbytes = sbytes + "%3d" % b + " "
+    return sbytes
+        
+
+def display_message(label="", msg=""):
+    sbytes = bytes_as_str(msg)
     print(label)
     print(sbytes)
 
@@ -104,17 +108,39 @@ def assignment_1():
 #    for m in msgs
 
 
+    
+    
 def table_of_xors():
-    output = "    " + " ".join([" " + chr(x) for x in range(97, 122)]) + "\n"
-    for x in range(97, 122):
+    array_of_chars = [32] + range(97, 122)
+    
+    output = "    " + " ".join([" " + chr(x) for x in array_of_chars]) + "\n"
+    
+    for x in array_of_chars:
         output = output + chr(x) + " : "
-        for y in range(97, 122):
+        for y in array_of_chars:
             output = output + "%2d " % (x ^ y)
         output = output + "\n"
 
     return output
 
 print table_of_xors()
+
+target_as_bytes = bytearray.fromhex(target_message)
+display_message("target : len=%d" % len(target_as_bytes), target_as_bytes)
+
+msgs_as_bytes = as_bytes(msgs, len(target_as_bytes))
+
+msg1 = msgs_as_bytes[0]
+msg2 = msgs_as_bytes[1]
+
+
+s1 = bytes_as_str(msg1[:20])
+s2 = bytes_as_str(msg2[:20])
+xor12 = xor_bytes(msg1, msg2)
+
+s3 = bytes_as_str(xor12[:20])
+
+print "msg1: " + s1 +"\nmsg2: " + s2 + "\nxor:  " + s3
 
 assignment_1()
 
