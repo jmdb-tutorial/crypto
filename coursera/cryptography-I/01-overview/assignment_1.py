@@ -123,7 +123,7 @@ def table_of_xors():
 
     return output
 
-print table_of_xors()
+
 
 target_as_bytes = bytearray.fromhex(target_message)
 display_message("target : len=%d" % len(target_as_bytes), target_as_bytes)
@@ -132,15 +132,22 @@ msgs_as_bytes = as_bytes(msgs, len(target_as_bytes))
 
 msg1 = msgs_as_bytes[0]
 msg2 = msgs_as_bytes[1]
-
+msg3 = msgs_as_bytes[2]
 
 s1 = bytes_as_str(msg1[:20])
 s2 = bytes_as_str(msg2[:20])
+s3 = bytes_as_str(msg3[:20])
+
 xor12 = xor_bytes(msg1, msg2)
+xor13 = xor_bytes(msg1, msg3)
+xor23 = xor_bytes(msg2, msg3)
 
-s3 = bytes_as_str(xor12[:20])
+xs12 = bytes_as_str(xor12[:20])
+xs13 = bytes_as_str(xor13[:20])
+xs23 = bytes_as_str(xor23[:20])
 
-print "msg1: " + s1 +"\nmsg2: " + s2 + "\nxor:  " + s3
+print table_of_xors()
+print "msg1:  " + s1 +"\nmsg2:  "+ s2 + "\nmsg3:  " + s3 +  "\n\nxor12: " + xs12 + "\nxor13: " + xs13 + "\nxor23: " + xs23
 
 assignment_1()
 
